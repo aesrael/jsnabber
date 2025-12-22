@@ -1,0 +1,60 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/jsnabber-core",
+    "crates/jsnabber-worker",
+    "crates/jsnabber-server",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["JSNabber Contributors"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/jsnabber"
+homepage = "https://github.com/yourusername/jsnabber"
+rust-version = "1.75"
+
+[workspace.dependencies]
+# Core JS engine
+rquickjs = { version = "0.6", features = ["array-buffer", "loader", "bindgen"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+base64 = "0.22"
+rand = "0.8"
+rand_pcg = "0.3"
+getrandom = { version = "0.2", features = ["js"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Async runtime (for backend)
+tokio = { version = "1.35", features = ["full"] }
+
+# HTTP framework (for backend)
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+
+# Cloudflare Workers (for edge)
+worker = "0.3"
+
+# Testing
+criterion = "0.5"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[profile.release-wasm]
+inherits = "release"
+opt-level = "z"  # Optimize for size for WASM

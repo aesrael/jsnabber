@@ -1,0 +1,38 @@
+[package]
+name = "jsnabber-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+description = "Core JavaScript sandbox engine for behavioral analysis"
+keywords = ["javascript", "sandbox", "malware", "security", "analysis"]
+categories = ["security", "development-tools", "web-programming"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+base64.workspace = true
+rand.workspace = true
+rand_pcg.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+getrandom.workspace = true
+
+# Engines (gated by features)
+rquickjs = { workspace = true, optional = true }
+quickjs-wasm-rs = { version = "3.1.0", optional = true }
+
+[features]
+default = ["native"]
+native = ["dep:rquickjs"]
+wasm = ["dep:quickjs-wasm-rs"]
+
+[dev-dependencies]
+tracing-subscriber.workspace = true
+criterion.workspace = true
+# For tests, we use native
+rquickjs = { workspace = true }

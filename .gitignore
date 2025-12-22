@@ -1,0 +1,33 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cloudflare Workers
+.wrangler/
+worker-build/
+dist/
+
+# Environment
+.env
+.env.local
+*.local
+
+# Test artifacts
+/tests/output/
+/tests/malware-samples/*.downloaded
+
+# Logs
+*.log
