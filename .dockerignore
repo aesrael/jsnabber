@@ -1,0 +1,7 @@
+target
+debug
+# Ignore node_modules if they exist (though not currently used)
+node_modules
+.git
+.env
+*.log

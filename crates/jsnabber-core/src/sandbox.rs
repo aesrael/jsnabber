@@ -28,6 +28,50 @@ pub enum SandboxError {
     EngineError(String),
 }
 
+/// Metadata about how the code was analyzed
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AnalysisMetadata {
+    /// How the code was executed (script, module, or strict mode fallback)
+    pub execution_mode: ExecutionMode,
+    /// Whether function discovery was performed
+    pub function_discovery_enabled: bool,
+    /// Number of functions discovered and executed
+    pub functions_discovered: usize,
+    /// Entry points that were automatically called
+    pub entry_points_called: Vec<String>,
+    /// Whether the code used ES6 imports
+    pub used_es6_modules: bool,
+    /// Whether unknown APIs were accessed (via fallback proxy)
+    pub accessed_unknown_apis: bool,
+    /// Static analysis results (pattern detection without execution)
+    pub static_analysis: crate::static_analysis::StaticAnalysis,
+}
+
+/// How the JavaScript code was executed
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ExecutionMode {
+    /// Executed as a standard script
+    Script,
+    /// Executed as an ES6 module
+    Module,
+    /// Executed in strict mode (without 'with' wrapper)
+    StrictScript,
+}
+
+impl Default for AnalysisMetadata {
+    fn default() -> Self {
+        Self {
+            execution_mode: ExecutionMode::Script,
+            function_discovery_enabled: true,
+            functions_discovered: 0,
+            entry_points_called: Vec::new(),
+            used_es6_modules: false,
+            accessed_unknown_apis: false,
+            static_analysis: crate::static_analysis::StaticAnalysis::default(),
+        }
+    }
+}
+
 /// Result of JavaScript execution
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionResult {
@@ -49,6 +93,8 @@ pub struct ExecutionResult {
     pub env: crate::environment::Environment,
     /// Behavioral features (Phase 4)
     pub features: crate::features::BehavioralFeatures,
+    /// Analysis metadata - explains what was analyzed and how
+    pub analysis: AnalysisMetadata,
 }
 
 /// Result of multi-environment execution

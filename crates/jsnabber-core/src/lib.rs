@@ -41,6 +41,7 @@ pub mod instrumentation;
 pub mod limits;
 pub mod platform;
 pub mod sandbox;
+pub mod static_analysis;
 
 // Re-export main types
 pub use engine::{EngineError, SandboxEngine};

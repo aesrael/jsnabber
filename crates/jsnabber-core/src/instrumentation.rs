@@ -7,13 +7,16 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 /// Types of instrumentation events
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "lowercase")]
 pub enum EventType {
     /// eval() call
     Eval,
-    /// Function constructor
+    /// Function constructor (Function wrapper)
+    #[serde(rename = "FunctionConstructor")]
     FunctionConstructor,
     /// String decoding (atob, fromCharCode, etc.)
+    #[serde(rename = "string_decode")]
     StringDecode,
     /// Timer (setTimeout, setInterval)
     Timer,
@@ -21,8 +24,16 @@ pub enum EventType {
     Random,
     /// Network-like API (fetch, XMLHttpRequest)
     Network,
-    /// DOM access
-    DomAccess,
+    /// Sensitive storage access (localStorage, cookies)
+    Storage,
+    /// System-level API access (process, require, console)
+    System,
+    /// Cryptographic operations (WebCrypto)
+    Crypto,
+    /// Anti-analysis and evasion techniques (Reflect, Proxy, debugger)
+    Evasion,
+    /// DOM mutations and element creation
+    DOM,
     /// Other/custom event
     Other(String),
 }
@@ -128,11 +139,15 @@ pub fn register_native_hooks(ctx: &rquickjs::Ctx<'_>, log: AtomicLog) -> rquickj
                 let event_type = match event_name.as_str() {
                     "eval" => EventType::Eval,
                     "FunctionConstructor" => EventType::FunctionConstructor,
-                    "atob" => EventType::StringDecode,
-                    "fromCharCode" => EventType::StringDecode,
-                    "random" => EventType::Random,
+                    "atob" | "btoa" | "fromCharCode" => EventType::StringDecode,
                     "timer" => EventType::Timer,
                     "network" => EventType::Network,
+                    "random" => EventType::Random,
+                    "storage" => EventType::Storage,
+                    "system" => EventType::System,
+                    "crypto" => EventType::Crypto,
+                    "evasion" => EventType::Evasion,
+                    "dom" => EventType::DOM,
                     _ => EventType::Other(event_name),
                 };
                 l.log(event_type, payload);
@@ -155,21 +170,55 @@ pub fn register_native_hooks(ctx: &rquickjs::Ctx<'_>, log: AtomicLog) -> rquickj
     ctx.eval::<(), _>(
         r#"
         const __location = {
-            href: 'https://sandbox.local/',
-            hostname: 'https://sandbox.local',
-            host: 'https://sandbox.local',
-            protocol: 'https:',
-            port: '',
-            pathname: '/',
-            search: '',
-            hash: '',
-            origin: 'https://sandbox.local'
+            get href() { return 'https://sandbox.local/'; },
+            set href(v) {},
+            get hostname() { return 'sandbox.local'; },
+            set hostname(v) {},
+            get host() { return 'sandbox.local'; },
+            set host(v) {},
+            get protocol() { return 'https:'; },
+            set protocol(v) {},
+            get port() { return ''; },
+            set port(v) {},
+            get pathname() { return '/'; },
+            set pathname(v) {},
+            get search() { return ''; },
+            set search(v) {},
+            get hash() { return ''; },
+            set hash(v) {},
+            get origin() { return 'https://sandbox.local'; },
+            set origin(v) {}
         };
         
         globalThis.location = __location;
         globalThis.window = {
-            get location() { return __location; }
+            self: globalThis,
+            top: globalThis,
+            parent: globalThis,
+            frames: [],
+            length: 0,
+            closed: false,
+            opener: null,
+            name: '',
+            status: '',
+            defaultStatus: ''
         };
+        
+        // Define location as a non-configurable property on window
+        Object.defineProperty(globalThis.window, 'location', {
+            get: function() { return __location; },
+            set: function(v) { /* ignore attempts to set */ },
+            enumerable: true,
+            configurable: false
+        });
+        
+        // Make window.window reference itself
+        globalThis.window.window = globalThis.window;
+        
+        // Verify setup (for debugging)
+        if (typeof window === 'undefined' || typeof window.location === 'undefined' || typeof window.location.hostname === 'undefined') {
+            throw new Error('Window/location setup failed!');
+        }
     "#,
     )?;
 
@@ -199,11 +248,15 @@ pub fn register_wasm_hooks(
         let event_type = match event_name {
             "eval" => EventType::Eval,
             "FunctionConstructor" => EventType::FunctionConstructor,
-            "atob" => EventType::StringDecode,
-            "fromCharCode" => EventType::StringDecode,
-            "random" => EventType::Random,
+            "atob" | "fromCharCode" => EventType::StringDecode,
             "timer" => EventType::Timer,
             "network" => EventType::Network,
+            "random" => EventType::Random,
+            "storage" => EventType::Storage,
+            "system" => EventType::System,
+            "crypto" => EventType::Crypto,
+            "evasion" => EventType::Evasion,
+            "dom" => EventType::DOM,
             _ => EventType::Other(event_name.to_string()),
         };
         l.log(event_type, payload);
@@ -232,6 +285,9 @@ pub fn register_wasm_hooks(
 
 // Load instrumentation JavaScript from external file
 const INSTRUMENTATION_JS: &str = include_str!("instrumentation.js");
+
+// Load function discovery JavaScript from external file
+pub(crate) const FUNCTION_DISCOVERY_JS: &str = include_str!("function_discovery.js");
 
 impl Default for InstrumentationLog {
     fn default() -> Self {

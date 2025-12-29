@@ -101,13 +101,30 @@ impl BehavioralFeatures {
             0.0
         };
 
-        let classification = Self::classify_internal(
-            &api_call_counts,
-            max_entropy,
-            expansion_factor,
-            instruction_density,
-            result.completed,
-        );
+        let mut classification = result.analysis.static_analysis.classification();
+
+        // If execution didn't complete (resource limit hit), mark as Inconclusive unless already Malicious
+        if !result.completed && classification != Classification::Malicious {
+            classification = Classification::Inconclusive;
+        }
+
+        // If static analysis is benign but we have significant behavioral signals, upgrade to suspicious
+        if classification == Classification::Benign {
+            if total_expansion > 1000
+                || max_entropy > 7.0
+                || api_call_counts.contains_key("network")
+            {
+                classification = Classification::Suspicious;
+            } else if total_expansion > 0 || api_call_counts.contains_key("eval") {
+                classification = Classification::Suspicious;
+            }
+        }
+
+        // Highly malicious indicators
+        if api_call_counts.contains_key("network") && (total_expansion > 5000 || max_entropy > 7.5)
+        {
+            classification = Classification::Malicious;
+        }
 
         Self {
             classification,
@@ -118,38 +135,6 @@ impl BehavioralFeatures {
             total_expansion_bytes: total_expansion,
             expansion_factor,
         }
-    }
-
-    fn classify_internal(
-        counts: &HashMap<String, usize>,
-        max_entropy: f64,
-        expansion: f64,
-        density: f64,
-        completed: bool,
-    ) -> Classification {
-        // 1. Check for Malicious indicators
-        if (max_entropy > 6.8 && expansion > 2.0) || (max_entropy > 7.2) {
-            return Classification::Malicious;
-        }
-
-        // 2. Check for Suspicious indicators
-        let has_eval = counts.contains_key("Eval") || counts.contains_key("FunctionConstructor");
-        let has_network = counts.contains_key("Network");
-
-        if (has_eval && max_entropy > 6.0) || (has_eval && has_network) || density > 20000.0 {
-            return Classification::Suspicious;
-        }
-
-        if has_eval || has_network {
-            return Classification::Suspicious;
-        }
-
-        // 3. Fallback
-        if !completed {
-            return Classification::Inconclusive;
-        }
-
-        Classification::Benign
     }
 }
 

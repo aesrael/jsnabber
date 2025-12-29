@@ -163,6 +163,15 @@ const ENVIRONMENT_JS: &str = r#"
 
     globalThis.window = globalThis;
     globalThis.self = globalThis;
-    globalThis.location = { href: 'https://example.com/' };
+    globalThis.location = { 
+        href: 'https://example.com/',
+        hostname: 'example.com',
+        protocol: 'https:',
+        host: 'example.com',
+        pathname: '/',
+        search: '',
+        hash: '',
+        origin: 'https://example.com'
+    };
 })();
 "#;

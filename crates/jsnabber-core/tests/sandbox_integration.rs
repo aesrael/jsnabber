@@ -75,9 +75,14 @@ fn test_infinite_loop_termination() {
 
     let code = "while(true) { var x = 1; }";
 
-    let result = sandbox.execute(code);
-    // Should hit instruction limit
-    assert!(result.is_err());
+    let result = sandbox.execute(code).unwrap();
+    // Should hit instruction limit and return completed = false
+    assert!(!result.completed);
+    assert!(result
+        .error
+        .as_ref()
+        .map(|e| e.contains("limit"))
+        .unwrap_or(false));
 }
 
 #[test]
@@ -91,9 +96,9 @@ fn test_recursive_bomb() {
         bomb();
     "#;
 
-    let result = sandbox.execute(code);
-    // Should hit instruction limit or stack overflow
-    assert!(result.is_err() || !result.unwrap().completed);
+    let result = sandbox.execute(code).unwrap();
+    // Should hit instruction limit or stack overflow and return completed = false
+    assert!(!result.completed);
 }
 
 #[test]
@@ -119,9 +124,9 @@ fn test_string_concatenation_bomb() {
         }
     "#;
 
-    let result = sandbox.execute(code);
-    // Should hit instruction limit
-    assert!(result.is_err() || result.unwrap().instruction_count > 0);
+    let result = sandbox.execute(code).unwrap();
+    // Should hit instruction limit and return completed = false
+    assert!(!result.completed);
 }
 
 #[test]

@@ -63,6 +63,7 @@ impl SandboxEngine for WasmQuickJsEngine {
             logs,
             env: env.clone(),
             features: BehavioralFeatures::default(),
+            analysis: crate::sandbox::AnalysisMetadata::default(),
         };
 
         Ok(ExecutionResult {

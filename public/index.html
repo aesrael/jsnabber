@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JSNabber - JavaScript Malware Analysis</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .header {
+        text-align: center;
+        color: white;
+        margin-bottom: 30px;
+      }
+
+      .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .header p {
+        font-size: 1.1em;
+        opacity: 0.9;
+      }
+
+      .card {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+
+      .input-section {
+        margin-bottom: 20px;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #e0e0e0;
+      }
+
+      .tab {
+        padding: 12px 24px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1em;
+        color: #666;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s;
+      }
+
+      .tab.active {
+        color: #667eea;
+        border-bottom-color: #667eea;
+        font-weight: 600;
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 200px;
+        padding: 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-family: "Monaco", "Courier New", monospace;
+        font-size: 14px;
+        resize: vertical;
+        transition: border-color 0.3s;
+      }
+
+      textarea:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      input[type="text"],
+      input[type="file"] {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 1em;
+        transition: border-color 0.3s;
+      }
+
+      input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      .btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 40px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.1em;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+        width: 100%;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn:active {
+        transform: translateY(0);
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .results {
+        display: none;
+      }
+
+      .results.show {
+        display: block;
+      }
+
+      .risk-score {
+        text-align: center;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+      }
+
+      .risk-score.low {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      }
+
+      .risk-score.medium {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      }
+
+      .risk-score.high {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      }
+
+      .risk-score h2 {
+        color: white;
+        font-size: 3em;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .risk-score p {
+        color: white;
+        font-size: 1.2em;
+        opacity: 0.9;
+      }
+
+      .section {
+        margin-bottom: 25px;
+      }
+
+      .section h3 {
+        color: #333;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e0e0e0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.85em;
+        font-weight: 600;
+      }
+
+      .badge.high {
+        background: #fee;
+        color: #c33;
+      }
+
+      .badge.medium {
+        background: #ffeaa7;
+        color: #d63031;
+      }
+
+      .badge.low {
+        background: #dfe6e9;
+        color: #636e72;
+      }
+
+      .pattern-item {
+        padding: 12px;
+        background: #f8f9fa;
+        border-left: 4px solid #667eea;
+        margin-bottom: 10px;
+        border-radius: 4px;
+      }
+
+      .pattern-item strong {
+        color: #333;
+      }
+
+      .pattern-item code {
+        background: #e9ecef;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.9em;
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+      }
+
+      .metric {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+      }
+
+      .metric-value {
+        font-size: 2em;
+        font-weight: 700;
+        color: #667eea;
+        margin-bottom: 5px;
+      }
+
+      .metric-label {
+        color: #666;
+        font-size: 0.9em;
+      }
+
+      .log-entry {
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        font-family: "Monaco", "Courier New", monospace;
+        font-size: 0.85em;
+      }
+
+      .log-entry .timestamp {
+        color: #999;
+        margin-right: 10px;
+      }
+
+      .log-entry .event-type {
+        color: #667eea;
+        font-weight: 600;
+        margin-right: 10px;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        display: none;
+      }
+
+      .loading.show {
+        display: block;
+      }
+
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .error {
+        background: #fee;
+        color: #c33;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #c33;
+        display: none;
+      }
+
+      .error.show {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🔍 JSNabber</h1>
+        <p>Hybrid JavaScript Malware Analysis</p>
+      </div>
+
+      <div class="card">
+        <div class="input-section">
+          <div class="tabs">
+            <button class="tab active" onclick="switchTab('paste')">
+              📝 Paste Code
+            </button>
+            <button class="tab" onclick="switchTab('file')">
+              📁 Upload File
+            </button>
+            <button class="tab" onclick="switchTab('url')">🔗 Fetch URL</button>
+          </div>
+
+          <div id="paste-tab" class="tab-content active">
+            <textarea
+              id="code-input"
+              placeholder="Paste JavaScript code here..."
+            ></textarea>
+          </div>
+
+          <div id="file-tab" class="tab-content">
+            <input type="file" id="file-input" accept=".js,.txt" />
+          </div>
+
+          <div id="url-tab" class="tab-content">
+            <input
+              type="text"
+              id="url-input"
+              placeholder="https://example.com/script.js"
+            />
+          </div>
+        </div>
+
+        <button class="btn" onclick="analyze()">Analyze Code</button>
+
+        <div class="error" id="error"></div>
+
+        <div class="loading" id="loading">
+          <div class="spinner"></div>
+          <p>Analyzing code...</p>
+        </div>
+      </div>
+
+      <div class="results" id="results">
+        <div class="card">
+          <div class="risk-score" id="risk-score">
+            <h2 id="score-value">0</h2>
+            <p id="score-label">Risk Score</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section">
+            <h3>📊 Analysis Summary</h3>
+            <div class="metric-grid" id="metrics"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section">
+            <h3>⚠️ Suspicious Patterns</h3>
+            <div id="patterns"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section">
+            <h3>🔧 API Calls</h3>
+            <div id="api-calls"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section">
+            <h3>📜 Execution Log</h3>
+            <div id="logs"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentTab = "paste";
+
+      function switchTab(tab) {
+        // Update tab buttons
+        document
+          .querySelectorAll(".tab")
+          .forEach((t) => t.classList.remove("active"));
+        event.target.classList.add("active");
+
+        // Update tab content
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((c) => c.classList.remove("active"));
+        document.getElementById(`${tab}-tab`).classList.add("active");
+
+        currentTab = tab;
+      }
+
+      async function getCode() {
+        if (currentTab === "paste") {
+          return document.getElementById("code-input").value;
+        } else if (currentTab === "file") {
+          const file = document.getElementById("file-input").files[0];
+          if (!file) throw new Error("Please select a file");
+          return await file.text();
+        } else if (currentTab === "url") {
+          const url = document.getElementById("url-input").value;
+          if (!url) throw new Error("Please enter a URL");
+          const response = await fetch(
+            `/api/fetch?url=${encodeURIComponent(url)}`,
+          );
+          if (!response.ok) throw new Error("Failed to fetch URL");
+          return await response.text();
+        }
+      }
+
+      async function analyze() {
+        try {
+          // Get code
+          const code = await getCode();
+          if (!code || code.trim() === "") {
+            throw new Error("Please provide some code to analyze");
+          }
+
+          // Show loading
+          document.getElementById("loading").classList.add("show");
+          document.getElementById("results").classList.remove("show");
+          document.getElementById("error").classList.remove("show");
+
+          // Call API
+          const response = await fetch("/api/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Analysis failed: ${response.statusText}`);
+          }
+
+          const result = await response.json();
+
+          // Hide loading
+          document.getElementById("loading").classList.remove("show");
+
+          // Display results
+          displayResults(result);
+        } catch (error) {
+          document.getElementById("loading").classList.remove("show");
+          document.getElementById("error").textContent = error.message;
+          document.getElementById("error").classList.add("show");
+        }
+      }
+
+      function displayResults(result) {
+        // Risk Score
+        const score = result.analysis.static_analysis.risk_score;
+        const scoreEl = document.getElementById("risk-score");
+        document.getElementById("score-value").textContent = score;
+
+        scoreEl.className = "risk-score";
+        if (score < 30) {
+          scoreEl.classList.add("low");
+          document.getElementById("score-label").textContent = "Low Risk";
+        } else if (score < 60) {
+          scoreEl.classList.add("medium");
+          document.getElementById("score-label").textContent = "Medium Risk";
+        } else {
+          scoreEl.classList.add("high");
+          document.getElementById("score-label").textContent = "High Risk";
+        }
+
+        // Metrics
+        const metricsHTML = `
+                <div class="metric">
+                    <div class="metric-value">${result.instruction_count.toLocaleString()}</div>
+                    <div class="metric-label">Instructions</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">${result.execution_time_ms}ms</div>
+                    <div class="metric-label">Execution Time</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">${result.analysis.functions_discovered}</div>
+                    <div class="metric-label">Functions Found</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">${result.analysis.static_analysis.patterns_found.length}</div>
+                    <div class="metric-label">Patterns Detected</div>
+                </div>
+            `;
+        document.getElementById("metrics").innerHTML = metricsHTML;
+
+        // Patterns
+        const patterns = result.analysis.static_analysis.patterns_found;
+        if (patterns.length === 0) {
+          document.getElementById("patterns").innerHTML =
+            '<p style="color: #666;">No suspicious patterns detected.</p>';
+        } else {
+          const patternsHTML = patterns
+            .map(
+              (p) => `
+                    <div class="pattern-item">
+                        <strong>${p.name}</strong>
+                        <span class="badge ${p.severity.toLowerCase()}">${p.severity}</span>
+                        <br>
+                        <small>Lines: ${p.line_numbers.join(", ")}</small>
+                        <br>
+                        <code>${escapeHtml(p.context)}</code>
+                    </div>
+                `,
+            )
+            .join("");
+          document.getElementById("patterns").innerHTML = patternsHTML;
+        }
+
+        // API Calls
+        const apiCalls = result.features.api_call_counts;
+        const apiHTML = Object.entries(apiCalls)
+          .sort((a, b) => b[1] - a[1])
+          .map(
+            ([api, count]) => `
+                    <div class="pattern-item">
+                        <strong>${api}</strong>: ${count} call${count !== 1 ? "s" : ""}
+                    </div>
+                `,
+          )
+          .join("");
+        document.getElementById("api-calls").innerHTML =
+          apiHTML || '<p style="color: #666;">No API calls detected.</p>';
+
+        // Logs (show first 50)
+        const logs = result.logs.slice(0, 50);
+        const logsHTML = logs
+          .map(
+            (log) => `
+                <div class="log-entry">
+                    <span class="timestamp">${log.timestamp_ms}ms</span>
+                    <span class="event-type">${formatEventType(log.event_type)}</span>
+                    ${log.payload ? escapeHtml(log.payload.substring(0, 100)) : ""}
+                </div>
+            `,
+          )
+          .join("");
+        document.getElementById("logs").innerHTML =
+          logsHTML || '<p style="color: #666;">No logs available.</p>';
+
+        // Show results
+        document.getElementById("results").classList.add("show");
+        document
+          .getElementById("results")
+          .scrollIntoView({ behavior: "smooth" });
+      }
+
+      function formatEventType(eventType) {
+        if (typeof eventType === "string") return eventType;
+        if (eventType.Other) return eventType.Other;
+        return Object.keys(eventType)[0] || "Unknown";
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+      }
+    </script>
+  </body>
+</html>
