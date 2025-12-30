@@ -309,7 +309,7 @@ mod tests {
 
     #[test]
     fn test_behavioral_classification_upgrade() {
-        let mut result = ExecutionResult {
+        let result = ExecutionResult {
             completed: true,
             instruction_count: 100,
             execution_time_ms: 10,

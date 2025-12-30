@@ -6,8 +6,8 @@ use std::time::{Duration, Instant};
 
 fn main() {
     println!("=== JSNabber Fuzz Runner (Advanced) ===");
-    let duration = Duration::from_secs(300); // 5 minutes (user requested)
-                                             // Reduce duration for testing unless overridden
+    let _duration = Duration::from_secs(300); // 5 minutes (user requested)
+                                              // Reduce duration for testing unless overridden
     let args: Vec<String> = std::env::args().collect();
     let duration = if args.len() > 1 {
         Duration::from_secs(args[1].parse().unwrap_or(30))

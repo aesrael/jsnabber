@@ -31,7 +31,7 @@ fn test_obfuscated_jsfuck() {
     // This is a simple example - real JSFuck is much longer
     let code = "[][(![]+[])[+[]]+([![]]+[][[]])[+!+[]+[+[]]]+(![]+[])[!+[]+!+[]]]";
 
-    let result = sandbox.execute(code).unwrap();
+    let _result = sandbox.execute(code).unwrap();
     // Should execute without crashing (even if it errors)
     // Note: instruction_count may be 0 due to rquickjs sampling
 }
@@ -65,7 +65,7 @@ fn test_base64_decode() {
         }
     "#;
 
-    let result = sandbox.execute(code).unwrap();
+    let _result = sandbox.execute(code).unwrap();
     // Note: instruction_count may be 0 due to rquickjs sampling
 }
 
@@ -108,7 +108,7 @@ fn test_array_bomb() {
     // Try to allocate huge array
     let code = "var arr = new Array(100000000);";
 
-    let result = sandbox.execute(code).unwrap();
+    let _result = sandbox.execute(code).unwrap();
     // QuickJS is lazy, so this might complete
     // Just verify it doesn't crash
 }
