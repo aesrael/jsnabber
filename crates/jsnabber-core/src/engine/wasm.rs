@@ -67,7 +67,7 @@ impl SandboxEngine for WasmQuickJsEngine {
         };
 
         Ok(ExecutionResult {
-            features: BehavioralFeatures::extract(&res, code.len()),
+            features: BehavioralFeatures::extract(&res, code.len(), code),
             ..res
         })
     }

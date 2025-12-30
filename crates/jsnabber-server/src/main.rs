@@ -12,7 +12,10 @@ use tower_http::services::ServeDir;
 
 #[derive(Debug, Deserialize)]
 pub struct AnalyzeRequest {
-    pub code: String,
+    #[serde(default)]
+    pub code: Option<String>,
+    #[serde(default)]
+    pub url: Option<String>,
     #[serde(default)]
     pub tier: Option<String>,
 }
@@ -31,6 +34,34 @@ pub struct HealthResponse {
 async fn analyze_handler(
     Json(payload): Json<AnalyzeRequest>,
 ) -> Result<Json<ExecutionResult>, (StatusCode, String)> {
+    // Get code either directly or by fetching URL
+    let code = if let Some(c) = payload.code {
+        c
+    } else if let Some(url) = payload.url {
+        // Fetch the URL
+        reqwest::get(&url)
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::BAD_REQUEST,
+                    format!("Failed to fetch URL: {}", e),
+                )
+            })?
+            .text()
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::BAD_REQUEST,
+                    format!("Failed to read response: {}", e),
+                )
+            })?
+    } else {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Either 'code' or 'url' must be provided".to_string(),
+        ));
+    };
+
     let limits = match payload.tier.as_deref() {
         Some("edge") => ExecutionLimits::edge(),
         Some("backend") => ExecutionLimits::backend(),
@@ -44,7 +75,7 @@ async fn analyze_handler(
         )
     })?;
 
-    let result = sandbox.execute(&payload.code).map_err(|e| {
+    let result = sandbox.execute(&code).map_err(|e| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("Execution error: {}", e),
@@ -89,7 +120,7 @@ async fn main() {
         .route("/health", get(health_handler))
         .route("/api/analyze", post(analyze_handler))
         .route("/api/fetch", get(fetch_handler))
-        .fallback_service(ServeDir::new("public"));
+        .fallback_service(ServeDir::new("../../public"));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
         .await

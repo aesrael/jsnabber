@@ -329,7 +329,7 @@ impl SandboxEngine for RQuickJsEngine {
         };
 
         Ok(ExecutionResult {
-            features: BehavioralFeatures::extract(&result, code.len()),
+            features: BehavioralFeatures::extract(&result, code.len(), code),
             ..result
         })
     }

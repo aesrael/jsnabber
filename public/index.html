@@ -1,610 +1,599 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>JSNabber - JavaScript Malware Analysis</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSNabber | Hybrid Malware Analysis</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        padding: 20px;
-      }
-
-      .container {
-        max-width: 1200px;
-        margin: 0 auto;
-      }
-
-      .header {
-        text-align: center;
-        color: white;
-        margin-bottom: 30px;
-      }
-
-      .header h1 {
-        font-size: 2.5em;
-        margin-bottom: 10px;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-      }
-
-      .header p {
-        font-size: 1.1em;
-        opacity: 0.9;
-      }
-
-      .card {
-        background: white;
-        border-radius: 12px;
-        padding: 30px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        margin-bottom: 20px;
-      }
-
-      .input-section {
-        margin-bottom: 20px;
-      }
-
-      .tabs {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-        border-bottom: 2px solid #e0e0e0;
-      }
-
-      .tab {
-        padding: 12px 24px;
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 1em;
-        color: #666;
-        border-bottom: 3px solid transparent;
-        transition: all 0.3s;
-      }
-
-      .tab.active {
-        color: #667eea;
-        border-bottom-color: #667eea;
-        font-weight: 600;
-      }
-
-      .tab-content {
-        display: none;
-      }
-
-      .tab-content.active {
-        display: block;
-      }
-
-      textarea {
-        width: 100%;
-        min-height: 200px;
-        padding: 15px;
-        border: 2px solid #e0e0e0;
-        border-radius: 8px;
-        font-family: "Monaco", "Courier New", monospace;
-        font-size: 14px;
-        resize: vertical;
-        transition: border-color 0.3s;
-      }
-
-      textarea:focus {
-        outline: none;
-        border-color: #667eea;
-      }
-
-      input[type="text"],
-      input[type="file"] {
-        width: 100%;
-        padding: 12px;
-        border: 2px solid #e0e0e0;
-        border-radius: 8px;
-        font-size: 1em;
-        transition: border-color 0.3s;
-      }
-
-      input:focus {
-        outline: none;
-        border-color: #667eea;
-      }
-
-      .btn {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 15px 40px;
-        border: none;
-        border-radius: 8px;
-        font-size: 1.1em;
-        font-weight: 600;
-        cursor: pointer;
-        transition:
-          transform 0.2s,
-          box-shadow 0.2s;
-        width: 100%;
-      }
-
-      .btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-      }
-
-      .btn:active {
-        transform: translateY(0);
-      }
-
-      .btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-      }
-
-      .results {
-        display: none;
-      }
-
-      .results.show {
-        display: block;
-      }
-
-      .risk-score {
-        text-align: center;
-        padding: 30px;
-        border-radius: 12px;
-        margin-bottom: 20px;
-      }
-
-      .risk-score.low {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-      }
-
-      .risk-score.medium {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      }
-
-      .risk-score.high {
-        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-      }
-
-      .risk-score h2 {
-        color: white;
-        font-size: 3em;
-        margin-bottom: 10px;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-      }
-
-      .risk-score p {
-        color: white;
-        font-size: 1.2em;
-        opacity: 0.9;
-      }
-
-      .section {
-        margin-bottom: 25px;
-      }
-
-      .section h3 {
-        color: #333;
-        margin-bottom: 15px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #e0e0e0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 0.85em;
-        font-weight: 600;
-      }
-
-      .badge.high {
-        background: #fee;
-        color: #c33;
-      }
-
-      .badge.medium {
-        background: #ffeaa7;
-        color: #d63031;
-      }
-
-      .badge.low {
-        background: #dfe6e9;
-        color: #636e72;
-      }
-
-      .pattern-item {
-        padding: 12px;
-        background: #f8f9fa;
-        border-left: 4px solid #667eea;
-        margin-bottom: 10px;
-        border-radius: 4px;
-      }
-
-      .pattern-item strong {
-        color: #333;
-      }
-
-      .pattern-item code {
-        background: #e9ecef;
-        padding: 2px 6px;
-        border-radius: 3px;
-        font-size: 0.9em;
-      }
-
-      .metric-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
-        margin-top: 15px;
-      }
-
-      .metric {
-        background: #f8f9fa;
-        padding: 15px;
-        border-radius: 8px;
-        text-align: center;
-      }
-
-      .metric-value {
-        font-size: 2em;
-        font-weight: 700;
-        color: #667eea;
-        margin-bottom: 5px;
-      }
-
-      .metric-label {
-        color: #666;
-        font-size: 0.9em;
-      }
-
-      .log-entry {
-        padding: 8px 12px;
-        background: #f8f9fa;
-        border-radius: 4px;
-        margin-bottom: 8px;
-        font-family: "Monaco", "Courier New", monospace;
-        font-size: 0.85em;
-      }
-
-      .log-entry .timestamp {
-        color: #999;
-        margin-right: 10px;
-      }
-
-      .log-entry .event-type {
-        color: #667eea;
-        font-weight: 600;
-        margin-right: 10px;
-      }
-
-      .loading {
-        text-align: center;
-        padding: 40px;
-        display: none;
-      }
-
-      .loading.show {
-        display: block;
-      }
-
-      .spinner {
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #667eea;
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 20px;
-      }
-
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
+        :root {
+            --bg: #0a0a0c;
+            --card: rgba(255, 255, 255, 0.04);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.3);
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --info: #0ea5e9;
         }
-        100% {
-          transform: rotate(360deg);
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-      }
 
-      .error {
-        background: #fee;
-        color: #c33;
-        padding: 15px;
-        border-radius: 8px;
-        border-left: 4px solid #c33;
-        display: none;
-      }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-      .error.show {
-        display: block;
-      }
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        /* --- Analysis Launcher --- */
+        .launcher-card {
+            background: var(--card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            padding: 2rem;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            margin-bottom: 2rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            background: rgba(0,0,0,0.2);
+            padding: 0.4rem;
+            border-radius: 12px;
+            width: fit-content;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--card-border);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .input-area {
+            position: relative;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            border: 1px solid var(--card-border);
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .input-area:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 240px;
+            background: transparent;
+            border: none;
+            color: #818cf8;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            resize: vertical;
+            outline: none;
+        }
+
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #818cf8;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            outline: none;
+            padding: 0.5rem 0;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px -5px var(--accent-glow);
+        }
+
+        .btn-primary:active { transform: translateY(0); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        /* --- Results Dashboard --- */
+        #results {
+            display: none;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            padding: 1.5rem;
+            border-radius: 20px;
+        }
+
+        .label { 
+            font-size: 0.75rem; 
+            color: var(--text-muted); 
+            text-transform: uppercase; 
+            letter-spacing: 0.1em; 
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .value { font-size: 1.5rem; font-weight: 600; }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .badge-benign { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .badge-malicious { background: rgba(239, 68, 68, 0.1); color: var(--error); }
+        .badge-suspicious { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+        .badge-inconclusive { background: rgba(148, 163, 184, 0.1); color: var(--text-muted); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .metric-item {
+            background: rgba(255,255,255,0.02);
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .metric-val { font-size: 1.25rem; font-weight: 600; display: block; }
+        .metric-lab { font-size: 0.7rem; color: var(--text-muted); display: block; margin-top: 0.25rem; }
+
+        /* --- Logs & Details --- */
+        .logs-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 1rem;
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--card-border);
+        }
+
+        .log-line {
+            display: grid;
+            grid-template-columns: 80px 100px 1fr;
+            padding: 0.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        .log-ts { color: var(--text-muted); }
+        .log-type { color: var(--accent); font-weight: 600; }
+        .log-payload { color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .pattern-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .pattern-card {
+            background: rgba(255,255,255,0.02);
+            padding: 1rem;
+            border-radius: 12px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .pattern-name { font-weight: 600; margin-bottom: 0.25rem; display: block; }
+        .pattern-context { 
+            font-size: 0.8rem; 
+            color: var(--text-muted); 
+            background: rgba(0,0,0,0.2); 
+            padding: 0.5rem; 
+            border-radius: 6px;
+            margin-top: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .api-tag {
+            display: inline-block;
+            background: rgba(99, 102, 241, 0.1);
+            color: #a5b4fc;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            margin: 0.25rem;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        /* --- Loading State --- */
+        #loader {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(99, 102, 241, 0.1);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .hidden { display: none !important; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
     </style>
-  </head>
-  <body>
+</head>
+<body>
     <div class="container">
-      <div class="header">
-        <h1>🔍 JSNabber</h1>
-        <p>Hybrid JavaScript Malware Analysis</p>
-      </div>
+        <header>
+            <h1>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor" fill-opacity="0.8"/>
+                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                JSNabber
+            </h1>
+            <p class="subtitle">Secure and Intelligent JavaScript Sandboxing</p>
+        </header>
 
-      <div class="card">
-        <div class="input-section">
-          <div class="tabs">
-            <button class="tab active" onclick="switchTab('paste')">
-              📝 Paste Code
+        <section class="launcher-card">
+            <div class="tabs">
+                <button id="tab-paste" class="tab-btn active" onclick="switchTab('paste')">Paste Code</button>
+                <button id="tab-file" class="tab-btn" onclick="switchTab('file')">Upload File</button>
+                <button id="tab-url" class="tab-btn" onclick="switchTab('url')">Fetch URL</button>
+            </div>
+
+            <div id="input-paste" class="input-area">
+                <textarea id="code-input" placeholder="// Paste your JavaScript here for behavioral analysis..."></textarea>
+            </div>
+
+            <div id="input-file" class="input-area hidden" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 240px; border: 2px dashed var(--card-border); gap: 1rem;">
+                <label for="file-input" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <span style="font-weight: 500; color: var(--text);">Drop file here or <span style="color: var(--accent);">browse</span></span>
+                    <span id="file-name" style="font-size: 0.85rem; color: var(--text-muted);">No file selected (.js, .txt)</span>
+                </label>
+                <input type="file" id="file-input" accept=".js,.txt" class="hidden" onchange="document.getElementById('file-name').textContent = this.files[0] ? this.files[0].name : 'No file selected (.js, .txt)'">
+            </div>
+
+            <div id="input-url" class="input-area hidden" style="display: flex; align-items: center; min-height: 240px; justify-content: center;">
+                <div style="width: 100%; max-width: 500px;">
+                    <div class="label" style="margin-bottom: 0.5rem; display: block; text-align: left;">Script Location</div>
+                    <div style="display: flex; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--card-border);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                        <input type="text" id="url-input" placeholder="https://example.com/malware.js" style="flex: 1;">
+                    </div>
+                </div>
+            </div>
+
+            <button id="analyze-btn" class="btn-primary" onclick="analyze()">
+                <span id="btn-text">Start Analysis</span>
+                <div id="btn-loader" class="spinner hidden" style="width:20px; height:20px; border-width:2px;"></div>
             </button>
-            <button class="tab" onclick="switchTab('file')">
-              📁 Upload File
-            </button>
-            <button class="tab" onclick="switchTab('url')">🔗 Fetch URL</button>
-          </div>
+            <div id="error-msg" class="badge badge-malicious hidden" style="width:100%; margin-top:1rem; border-radius:12px; justify-content:center;"></div>
+        </section>
 
-          <div id="paste-tab" class="tab-content active">
-            <textarea
-              id="code-input"
-              placeholder="Paste JavaScript code here..."
-            ></textarea>
-          </div>
+        <main id="results">
+            <div class="dashboard-grid">
+                <!-- Intelligence Assessment -->
+                <div class="stat-card" style="grid-column: span 1">
+                    <div class="label">Intelligence Verdict</div>
+                    <div id="verdict" class="value" style="margin-bottom: 0.5rem;">Evaluating...</div>
+                    <div id="score-meter" style="height:4px; background: rgba(255,255,255,0.05); border-radius:2px; overflow:hidden;">
+                        <div id="score-fill" style="width:0%; height:100%; background: var(--accent); transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);"></div>
+                    </div>
+                </div>
 
-          <div id="file-tab" class="tab-content">
-            <input type="file" id="file-input" accept=".js,.txt" />
-          </div>
+                <!-- Obfuscation Tracking -->
+                <div class="stat-card">
+                    <div class="label">Obfuscation Level</div>
+                    <div id="obfuscation-val" class="value">None</div>
+                </div>
 
-          <div id="url-tab" class="tab-content">
-            <input
-              type="text"
-              id="url-input"
-              placeholder="https://example.com/script.js"
-            />
-          </div>
-        </div>
+                <!-- Core Metrics -->
+                <div class="stat-card" style="grid-row: span 2">
+                    <div class="label">Execution Metrics</div>
+                    <div class="metrics-grid">
+                        <div class="metric-item">
+                            <span id="metric-ops" class="metric-val">-</span>
+                            <span class="metric-lab">Ops Count</span>
+                        </div>
+                        <div class="metric-item">
+                            <span id="metric-time" class="metric-val">-</span>
+                            <span class="metric-lab">Wall Time</span>
+                        </div>
+                        <div class="metric-item">
+                            <span id="metric-density" class="metric-val">-</span>
+                            <span class="metric-lab">Op/ms Density</span>
+                        </div>
+                        <div class="metric-item">
+                            <span id="metric-expansion" class="metric-val">-</span>
+                            <span class="metric-lab">Expansion Factor</span>
+                        </div>
+                    </div>
+                </div>
 
-        <button class="btn" onclick="analyze()">Analyze Code</button>
+                <!-- Insight Message -->
+                <div class="stat-card" style="grid-column: span 1">
+                    <div class="label">Behavioral Insight</div>
+                    <div id="behavioral-insight" style="font-size: 0.95rem; line-height: 1.5; color: #cbd5e1;">No malicious indicators observed during sandboxing.</div>
+                </div>
+            </div>
 
-        <div class="error" id="error"></div>
+            <!-- Suspicious Patterns -->
+            <div id="patterns-section" class="stat-card hidden">
+                <div class="label">Detected Static Patterns</div>
+                <div id="pattern-list" class="pattern-list"></div>
+            </div>
 
-        <div class="loading" id="loading">
-          <div class="spinner"></div>
-          <p>Analyzing code...</p>
-        </div>
-      </div>
+            <!-- API Interaction Tracking -->
+            <div class="stat-card">
+                <div class="label">API Interaction Surface</div>
+                <div id="api-counts"></div>
+            </div>
 
-      <div class="results" id="results">
-        <div class="card">
-          <div class="risk-score" id="risk-score">
-            <h2 id="score-value">0</h2>
-            <p id="score-label">Risk Score</p>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="section">
-            <h3>📊 Analysis Summary</h3>
-            <div class="metric-grid" id="metrics"></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="section">
-            <h3>⚠️ Suspicious Patterns</h3>
-            <div id="patterns"></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="section">
-            <h3>🔧 API Calls</h3>
-            <div id="api-calls"></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="section">
-            <h3>📜 Execution Log</h3>
-            <div id="logs"></div>
-          </div>
-        </div>
-      </div>
+            <!-- Sandbox Execution Log -->
+            <div class="stat-card">
+                <div class="label">Virtual Sandbox Logs</div>
+                <div class="logs-container" id="logs"></div>
+            </div>
+        </main>
     </div>
 
     <script>
-      let currentTab = "paste";
+        let currentTab = 'paste';
 
-      function switchTab(tab) {
-        // Update tab buttons
-        document
-          .querySelectorAll(".tab")
-          .forEach((t) => t.classList.remove("active"));
-        event.target.classList.add("active");
-
-        // Update tab content
-        document
-          .querySelectorAll(".tab-content")
-          .forEach((c) => c.classList.remove("active"));
-        document.getElementById(`${tab}-tab`).classList.add("active");
-
-        currentTab = tab;
-      }
-
-      async function getCode() {
-        if (currentTab === "paste") {
-          return document.getElementById("code-input").value;
-        } else if (currentTab === "file") {
-          const file = document.getElementById("file-input").files[0];
-          if (!file) throw new Error("Please select a file");
-          return await file.text();
-        } else if (currentTab === "url") {
-          const url = document.getElementById("url-input").value;
-          if (!url) throw new Error("Please enter a URL");
-          const response = await fetch(
-            `/api/fetch?url=${encodeURIComponent(url)}`,
-          );
-          if (!response.ok) throw new Error("Failed to fetch URL");
-          return await response.text();
-        }
-      }
-
-      async function analyze() {
-        try {
-          // Get code
-          const code = await getCode();
-          if (!code || code.trim() === "") {
-            throw new Error("Please provide some code to analyze");
-          }
-
-          // Show loading
-          document.getElementById("loading").classList.add("show");
-          document.getElementById("results").classList.remove("show");
-          document.getElementById("error").classList.remove("show");
-
-          // Call API
-          const response = await fetch("/api/analyze", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`Analysis failed: ${response.statusText}`);
-          }
-
-          const result = await response.json();
-
-          // Hide loading
-          document.getElementById("loading").classList.remove("show");
-
-          // Display results
-          displayResults(result);
-        } catch (error) {
-          document.getElementById("loading").classList.remove("show");
-          document.getElementById("error").textContent = error.message;
-          document.getElementById("error").classList.add("show");
-        }
-      }
-
-      function displayResults(result) {
-        // Risk Score
-        const score = result.analysis.static_analysis.risk_score;
-        const scoreEl = document.getElementById("risk-score");
-        document.getElementById("score-value").textContent = score;
-
-        scoreEl.className = "risk-score";
-        if (score < 30) {
-          scoreEl.classList.add("low");
-          document.getElementById("score-label").textContent = "Low Risk";
-        } else if (score < 60) {
-          scoreEl.classList.add("medium");
-          document.getElementById("score-label").textContent = "Medium Risk";
-        } else {
-          scoreEl.classList.add("high");
-          document.getElementById("score-label").textContent = "High Risk";
+        function switchTab(tab) {
+            currentTab = tab;
+            ['paste', 'file', 'url'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+                document.getElementById(`input-${t}`).classList.toggle('hidden', t !== tab);
+            });
         }
 
-        // Metrics
-        const metricsHTML = `
-                <div class="metric">
-                    <div class="metric-value">${result.instruction_count.toLocaleString()}</div>
-                    <div class="metric-label">Instructions</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value">${result.execution_time_ms}ms</div>
-                    <div class="metric-label">Execution Time</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value">${result.analysis.functions_discovered}</div>
-                    <div class="metric-label">Functions Found</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value">${result.analysis.static_analysis.patterns_found.length}</div>
-                    <div class="metric-label">Patterns Detected</div>
-                </div>
-            `;
-        document.getElementById("metrics").innerHTML = metricsHTML;
+        async function getPayload() {
+            if (currentTab === 'paste') {
+                const code = document.getElementById('code-input').value;
+                if (!code) throw new Error("Please paste some code");
+                return { code };
+            } else if (currentTab === 'file') {
+                const file = document.getElementById('file-input').files[0];
+                if (!file) throw new Error("Please select a file");
+                return { code: await file.text() };
+            } else {
+                const url = document.getElementById('url-input').value;
+                if (!url) throw new Error("Please enter a URL");
+                return { url };
+            }
+        }
 
-        // Patterns
-        const patterns = result.analysis.static_analysis.patterns_found;
-        if (patterns.length === 0) {
-          document.getElementById("patterns").innerHTML =
-            '<p style="color: #666;">No suspicious patterns detected.</p>';
-        } else {
-          const patternsHTML = patterns
-            .map(
-              (p) => `
-                    <div class="pattern-item">
-                        <strong>${p.name}</strong>
-                        <span class="badge ${p.severity.toLowerCase()}">${p.severity}</span>
-                        <br>
-                        <small>Lines: ${p.line_numbers.join(", ")}</small>
-                        <br>
-                        <code>${escapeHtml(p.context)}</code>
+        async function analyze() {
+            const btnText = document.getElementById('btn-text');
+            const btnLoader = document.getElementById('btn-loader');
+            const errorMsg = document.getElementById('error-msg');
+            const results = document.getElementById('results');
+
+            try {
+                const payload = await getPayload();
+                
+                btnText.textContent = 'Analysing...';
+                btnLoader.classList.remove('hidden');
+                errorMsg.classList.add('hidden');
+                results.style.display = 'none';
+
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || "Analysis failed");
+                }
+
+                const data = await response.json();
+                renderResults(data);
+                results.style.display = 'flex';
+                results.scrollIntoView({ behavior: 'smooth' });
+
+            } catch (e) {
+                errorMsg.textContent = e.message;
+                errorMsg.classList.remove('hidden');
+            } finally {
+                btnText.textContent = 'Start Analysis';
+                btnLoader.classList.add('hidden');
+            }
+        }
+
+        function renderResults(data) {
+            const risk = data.analysis.static_analysis.risk_score;
+            const features = data.features;
+            
+            // Verdict
+            const verdict = document.getElementById('verdict');
+            verdict.innerHTML = `<span class="badge badge-${features.classification.toLowerCase()}">${features.classification}</span>`;
+            
+            const scoreFill = document.getElementById('score-fill');
+            scoreFill.style.width = `${Math.min(risk, 100)}%`;
+            scoreFill.style.backgroundColor = risk > 60 ? 'var(--error)' : risk > 30 ? 'var(--warning)' : 'var(--success)';
+
+            // Obfuscation
+            document.getElementById('obfuscation-val').textContent = features.obfuscation_level;
+
+            // Metrics
+            document.getElementById('metric-ops').textContent = data.instruction_count.toLocaleString();
+            document.getElementById('metric-time').textContent = `${data.execution_time_ms}ms`;
+            document.getElementById('metric-density').textContent = features.instruction_density.toFixed(1);
+            document.getElementById('metric-expansion').textContent = features.expansion_factor.toFixed(2) + 'x';
+
+            // Insight
+            const insightText = features.classification === 'Malicious' 
+                ? "CRITICAL: Behavioral signals confirm malicious intent. Obfuscation detected alongside sensitive API calls."
+                : features.classification === 'Suspicious'
+                ? "WARNING: Script exhibits suspicious patterns or obfuscated payloads. Manual review recommended."
+                : "INFO: Normal execution flow observed. No high-risk behaviors detected in virtual sandbox.";
+            document.getElementById('behavioral-insight').textContent = insightText;
+
+            // Patterns
+            const patterns = data.analysis.static_analysis.patterns_found;
+            const patternSection = document.getElementById('patterns-section');
+            const patternList = document.getElementById('pattern-list');
+            
+            if (patterns.length > 0) {
+                patternSection.classList.remove('hidden');
+                patternList.innerHTML = patterns.map(p => `
+                    <div class="pattern-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span class="pattern-name">${p.name}</span>
+                            <span class="badge ${p.severity.toLowerCase() === 'high' ? 'badge-malicious' : 'badge-suspicious'}" style="font-size:0.7rem; padding:0.2rem 0.5rem">${p.severity}</span>
+                        </div>
+                        <div class="pattern-context">${escapeHtml(p.context)}</div>
                     </div>
-                `,
-            )
-            .join("");
-          document.getElementById("patterns").innerHTML = patternsHTML;
+                `).join('');
+            } else {
+                patternSection.classList.add('hidden');
+            }
+
+            // API Surface
+            const apiCounts = document.getElementById('api-counts');
+            const counts = features.api_call_counts;
+            apiCounts.innerHTML = Object.entries(counts).length > 0 
+                ? Object.entries(counts).map(([api, count]) => `<span class="api-tag">${api} (${count})</span>`).join('')
+                : '<span style="color:var(--text-muted); font-size:0.9rem">No sensitive APIs invoked.</span>';
+
+            // Logs
+            const logs = document.getElementById('logs');
+            logs.innerHTML = data.logs.map(log => {
+                const type = formatEventType(log.event_type);
+                const payload = log.payload ? escapeHtml(log.payload) : '';
+                return `
+                    <div class="log-line">
+                        <span class="log-ts">${log.timestamp_ms}ms</span>
+                        <span class="log-type">${type}</span>
+                        <span class="log-payload" title="${payload}">${payload}</span>
+                    </div>
+                `;
+            }).join('') || '<div style="padding:1rem; color:var(--text-muted)">No sandbox events recorded.</div>';
         }
 
-        // API Calls
-        const apiCalls = result.features.api_call_counts;
-        const apiHTML = Object.entries(apiCalls)
-          .sort((a, b) => b[1] - a[1])
-          .map(
-            ([api, count]) => `
-                    <div class="pattern-item">
-                        <strong>${api}</strong>: ${count} call${count !== 1 ? "s" : ""}
-                    </div>
-                `,
-          )
-          .join("");
-        document.getElementById("api-calls").innerHTML =
-          apiHTML || '<p style="color: #666;">No API calls detected.</p>';
+        function formatEventType(type) {
+            if (typeof type === 'string') return type;
+            if (type.Other) return type.Other;
+            return Object.keys(type)[0] || 'Event';
+        }
 
-        // Logs (show first 50)
-        const logs = result.logs.slice(0, 50);
-        const logsHTML = logs
-          .map(
-            (log) => `
-                <div class="log-entry">
-                    <span class="timestamp">${log.timestamp_ms}ms</span>
-                    <span class="event-type">${formatEventType(log.event_type)}</span>
-                    ${log.payload ? escapeHtml(log.payload.substring(0, 100)) : ""}
-                </div>
-            `,
-          )
-          .join("");
-        document.getElementById("logs").innerHTML =
-          logsHTML || '<p style="color: #666;">No logs available.</p>';
-
-        // Show results
-        document.getElementById("results").classList.add("show");
-        document
-          .getElementById("results")
-          .scrollIntoView({ behavior: "smooth" });
-      }
-
-      function formatEventType(eventType) {
-        if (typeof eventType === "string") return eventType;
-        if (eventType.Other) return eventType.Other;
-        return Object.keys(eventType)[0] || "Unknown";
-      }
-
-      function escapeHtml(text) {
-        const div = document.createElement("div");
-        div.textContent = text;
-        return div.innerHTML;
-      }
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
     </script>
-  </body>
+</body>
 </html>

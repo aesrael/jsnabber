@@ -160,3 +160,13 @@ fn test_syntax_variations() {
     let result = sandbox.execute(code).unwrap();
     assert!(result.completed);
 }
+
+#[test]
+fn test_bootstrap_library() {
+    let sandbox = Sandbox::new(ExecutionLimits::backend()).unwrap();
+    let code = include_str!("fixtures/bootstrap.min.js");
+
+    let _result = sandbox.execute(code).unwrap();
+    // Bootstrap checks for window/document existence.
+    // As long as it doesn't crash the sandbox, we are good.
+}

@@ -9,12 +9,10 @@ A high-performance **Hybrid JavaScript Analysis Sandbox** for detecting maliciou
   - **Dynamic Execution**: Runs code in a secure QuickJS sandbox, logging all API calls (`fetch`, `atob`, `eval`).
   - **Function Discovery**: Automatically finds and executes dormant functions that aren't called by the main script (e.g., hidden backdoors).
 - **Web Interface**: Clean, dark-mode UI for pasting code, uploading files, or fetching URLs.
-- **Granular Instrumentation**: 
-  - **Storage**: Tracking `localStorage` and `sessionStorage`.
-  - **System**: Monitoring `process`, `require`, and Node.js stubs.
-  - **Evasion**: Catching `Reflect`/`Proxy` usage and stealth signatures.
-  - **DOM**: Flagging dynamic script and iframe child creation.
-  - **Crypto**: Monitoring cryptographic operations and key access.
+- **Robust Instrumentation**: 
+  - Stubs for Browser APIs (`window`, `document`, `navigator`)
+  - Stubs for Node.js APIs (`require`, `process`, `Buffer`)
+  - "Catch-all" Proxy for unknown global variables
 - **Portable Architecture**: Core engine runs on both Native (Rust/Tokio) and Edge (WASM/Cloudflare Workers).
 
 ## 🚀 Quick Start

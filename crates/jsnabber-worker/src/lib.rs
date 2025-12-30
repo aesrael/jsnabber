@@ -19,60 +19,99 @@ pub struct WorkerResponse {
     pub message: String,
     pub instructions: u64,
     pub time_ms: u64,
+    pub features: jsnabber_core::features::BehavioralFeatures,
 }
+
+const DIAGNOSTIC_UI: &str = include_str!("../../../public/index.html");
 
 #[event(fetch)]
 async fn main(req: Request, _env: Env, _ctx: Context) -> Result<Response> {
-    // Only allow POST
-    if req.method() != Method::Post {
-        return Response::error("Method Not Allowed", 405);
-    }
+    let router = Router::new();
 
-    let mut req = req;
-    let payload = match req.json::<AnalyzeRequest>().await {
-        Ok(p) => p,
-        Err(_) => return Response::error("Invalid JSON body", 400),
-    };
+    router
+        .get("/", |_, _| Response::from_html(DIAGNOSTIC_UI))
+        .get_async("/api/fetch", |req, _| async move {
+            let url = req.url()?;
+            let target_url = url
+                .query_pairs()
+                .find(|(k, _)| k == "url")
+                .map(|(_, v)| v.to_string())
+                .ok_or_else(|| worker::Error::from("Missing 'url' query parameter"))?;
 
-    // Get code from payload or fetch from URL
-    let code = if let Some(c) = payload.code {
-        c
-    } else if let Some(u) = payload.url {
-        match Fetch::Url(u.parse()?).send().await {
-            Ok(mut resp) => resp.text().await?,
-            Err(_) => return Response::error("Failed to fetch script from URL", 502),
-        }
-    } else {
-        return Response::error("Either 'code' or 'url' must be provided", 400);
-    };
+            let headers = Headers::new();
+            headers.set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36").ok();
 
-    // Initialize sandbox with edge limits
-    let sandbox = match Sandbox::new(ExecutionLimits::edge()) {
-        Ok(s) => s,
-        Err(e) => return Response::error(format!("Sandbox init error: {}", e), 500),
-    };
+            let request = Request::new_with_init(
+                &target_url,
+                &RequestInit {
+                    method: Method::Get,
+                    headers,
+                    ..Default::default()
+                },
+            )
+            .map_err(|e| worker::Error::from(e.to_string()))?;
 
-    // Execute
-    match sandbox.execute(&code) {
-        Ok(result) => {
-            let features = result.features;
-            let message = match features.classification {
-                Classification::Malicious => "ALERT: Malicious script detected. Blocking.",
-                Classification::Suspicious => {
-                    "WARNING: Suspicious behavior detected. Flagging for deep analysis."
+            match Fetch::Request(request).send().await {
+                Ok(mut resp) => {
+                    let text = resp.text().await?;
+                    Response::ok(text)
                 }
-                Classification::Benign => "INFO: No suspicious behavior detected.",
-                Classification::Inconclusive => "INFO: Analysis inconclusive (limits hit).",
+                Err(e) => Response::error(format!("Failed to fetch URL: {}", e), 502),
+            }
+        })
+        .post_async("/api/analyze", |mut req, _| async move {
+            let payload = match req.json::<AnalyzeRequest>().await {
+                Ok(p) => p,
+                Err(_) => return Response::error("Invalid JSON body", 400),
             };
 
-            Response::from_json(&WorkerResponse {
-                success: result.completed,
-                classification: features.classification,
-                message: message.to_string(),
-                instructions: result.instruction_count,
-                time_ms: result.execution_time_ms,
-            })
-        }
-        Err(e) => Response::error(format!("Execution failed: {}", e), 500),
-    }
+            // Get code from payload (frontend handles fetching now, so we mostly expect code)
+            let code = if let Some(c) = payload.code {
+                c
+            } else if let Some(u) = payload.url {
+                // Keep this fallback just in case
+                match Fetch::Url(u.parse().map_err(|_| worker::Error::from("Invalid URL"))?)
+                    .send()
+                    .await
+                {
+                    Ok(mut resp) => resp.text().await?,
+                    Err(_) => return Response::error("Failed to fetch script from URL", 502),
+                }
+            } else {
+                return Response::error("Either 'code' or 'url' must be provided", 400);
+            };
+
+            // Initialize sandbox with edge limits
+            let sandbox = match Sandbox::new(ExecutionLimits::edge()) {
+                Ok(s) => s,
+                Err(e) => return Response::error(format!("Sandbox init error: {}", e), 500),
+            };
+
+            // Execute
+            match sandbox.execute(&code) {
+                Ok(result) => {
+                    let features = result.features;
+                    let message = match features.classification {
+                        Classification::Malicious => "ALERT: Malicious script detected. Blocking.",
+                        Classification::Suspicious => {
+                            "WARNING: Suspicious behavior detected. Flagging for deep analysis."
+                        }
+                        Classification::Benign => "INFO: No suspicious behavior detected.",
+                        Classification::Inconclusive => "INFO: Analysis inconclusive (limits hit).",
+                    };
+
+                    Response::from_json(&WorkerResponse {
+                        success: result.completed,
+                        classification: features.classification.clone(),
+                        message: message.to_string(),
+                        instructions: result.instruction_count,
+                        time_ms: result.execution_time_ms,
+                        features,
+                    })
+                }
+                Err(e) => Response::error(format!("Execution failed: {}", e), 500),
+            }
+        })
+        .run(req, _env)
+        .await
 }

@@ -44,7 +44,7 @@ tower = "0.4"
 tower-http = { version = "0.5", features = ["trace", "cors", "fs"] }
 
 # Cloudflare Workers (for edge)
-worker = "0.3"
+worker = "0.7.2"
 
 # Testing
 criterion = "0.5"

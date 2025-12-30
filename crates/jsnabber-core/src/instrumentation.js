@@ -450,11 +450,16 @@
       if (typeof prop === "symbol") return Reflect.get(target, prop, receiver);
       if (prop in target) return Reflect.get(target, prop, receiver);
 
-      // Log access to undefined global
-      __jsnabber_log(
-        "evasion",
-        `Accessed undefined global: ${String(prop)}`,
-      );
+
+      // Whitelist of common library patterns that are NOT evasion
+      const benignPatterns = ["onLoad", "onReady", "onInit", "onError", "onComplete", "onSuccess", "onChange", "onClick", "onSubmit", "onFocus", "onBlur", "onResize", "onScroll", "DOMContentLoaded", "addEventListener", "removeEventListener", "jQuery", "$", "_", "React", "Vue", "Angular", "bootstrap", "main", "init", "start", "run", "execute", "setup", "launch", "begin", "entry"];
+      const propStr = String(prop);
+      const isBenign = benignPatterns.includes(propStr) || propStr.startsWith("on");
+
+      // Only log as evasion if it's NOT a benign pattern
+      if (!isBenign) {
+        __jsnabber_log("evasion", `Accessed undefined global: ${propStr}`);
+      }
 
       // Return recursive stub
       return createRecursiveStub(String(prop));
