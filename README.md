@@ -1,5 +1,7 @@
 # JSNabber
 
+🚧 Work in progress - Initial tests seem to work but not validated and certainly not ready to use. Serverless mode also not working yet.
+
 A high-performance **Hybrid JavaScript Analysis Sandbox** for detecting malicious behavior in untrusted code. JSNabber combines static analysis, dynamic execution, and function discovery to catch obfuscated malware that traditional scanners miss.
 
 ## 🎯 Features
